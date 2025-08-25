@@ -1,5 +1,5 @@
 <?php
-namespace EvolutionCMS\Ai_bot\plugins;
+namespace kolya2320\Ai_bot\plugins;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 
