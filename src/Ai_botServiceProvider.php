@@ -18,6 +18,9 @@ class Ai_botServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             dirname(__DIR__) .'/config/ai_bot.php', 'services.yandex_cloud'
         );
+        $this->publishes([
+            __DIR__ . '/../publishable/assets'  => MODX_BASE_PATH . 'assets',
+        ]);
     }
     public function boot()
     {
