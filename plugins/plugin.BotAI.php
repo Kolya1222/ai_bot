@@ -70,6 +70,8 @@ Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
             document.addEventListener("DOMContentLoaded", function() {
                 // Функция для создания ассистента через AJAX
                 function createAssistant() {
+                    const sessionId = "' . $sessionId . '";
+                    
                     fetch("/bot-ai/create-assistant", {
                         method: "POST",
                         headers: {
@@ -77,6 +79,9 @@ Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
                             "X-CSRF-TOKEN": document.querySelector(\'meta[name="csrf-token"]\').content,
                             "X-Requested-With": "XMLHttpRequest"
                         },
+                        body: JSON.stringify({
+                            session_id: sessionId
+                        }),
                         credentials: "same-origin"
                     })
                     .then(response => response.json())
