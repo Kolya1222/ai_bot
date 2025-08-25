@@ -25,7 +25,7 @@ php artisan vendor:publish --provider="kolya2320\Ai_bot\Ai_botServiceProvider"
 ```
 4. Настройте конфиг
 ```
-В /core/vendor/kolya2320/botai/config/ai_bot.php заполните поля Folder ID, API Key, Директория с данными для ИИ
+В /core/vendor/kolya2320/botai/config/ai_bot.php заполните поля Folder ID, API Key, Директория с данными для ИИ (для примера закиньте /base в корень сайта)
 ```
 5. Выполните команду и результат запишите в конфиг
 ```
