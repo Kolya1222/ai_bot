@@ -64,17 +64,43 @@ Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
     $threadId = $_COOKIE['botai_thread_id'] ?? '';
     
     if (empty($assistantId) || empty($threadId)) {
-        // Создаем ассистента и тред, если их нет
-        $assistantData = botai_create_yandex_assistant($sessionId, $folderId, $iamToken, $searchIndex, $instruction, $modelUri);
-        if ($assistantData && isset($assistantData['assistant_id'])) {
-            // Сохраняем ID в куки
-            setcookie('botai_assistant_id', $assistantData['assistant_id'], time() + (365 * 24 * 60 * 60), '/');
-            setcookie('botai_thread_id', $assistantData['thread_id'], time() + (365 * 24 * 60 * 60), '/');
-            
-            // Обновляем переменные для текущего запроса
-            $assistantId = $assistantData['assistant_id'];
-            $threadId = $assistantData['thread_id'];
-        }
+        // Вместо прямого вызова функции делаем AJAX запрос
+        $modx->regClientScript('
+            <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                // Функция для создания ассистента через AJAX
+                function createAssistant() {
+                    fetch("/bot-ai/create-assistant", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": document.querySelector(\'meta[name="csrf-token"]\').content,
+                            "X-Requested-With": "XMLHttpRequest"
+                        },
+                        credentials: "same-origin"
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.assistant_id && data.thread_id) {
+                            // Сохраняем ID в куки
+                            document.cookie = "botai_assistant_id=" + data.assistant_id + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+                            document.cookie = "botai_thread_id=" + data.thread_id + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+                            
+                            console.log("Ассистент создан успешно");
+                        } else {
+                            console.error("Ошибка создания ассистента:", data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Ошибка сети:", error);
+                    });
+                }
+                
+                // Вызываем создание ассистента
+                createAssistant();
+            });
+            </script>
+        ');
     }
     
     // Регистрируем CSS и JS
