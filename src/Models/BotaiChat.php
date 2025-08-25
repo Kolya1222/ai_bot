@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BotaiChat extends Model
 {
     protected $table = 'botai_chats';
-    
+    public $timestamps = false;
     protected $fillable = [
         'session_id',
         'assistant_id',
