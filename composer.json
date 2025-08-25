@@ -1,0 +1,19 @@
+{
+  "name": "kolya2320/botai",
+  "require": {
+
+  },
+  "autoload": {
+    "psr-4": {
+      "kolya2320\\Ai_bot\\": "src"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "kolya2320\\Ai_bot\\Ai_botServiceProvider"
+      ]
+
+    }
+  }
+}
