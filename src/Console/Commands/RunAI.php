@@ -20,8 +20,7 @@ class RunAI extends Command
         $iamTokenapi = config('services.yandex_cloud.iam_token.value') ?? '';
         $folderid = config('services.yandex_cloud.folder_id.value') ?? '';
         //Загрузка файлов для яндекс клауд
-        // Путь к файлу bali.md
-        $filePath = MODX_BASE_PATH.'./base/bali.md';
+        $filePath = MODX_BASE_PATH.config('services.yandex_cloud.text_ai_path.value') ?? MODX_BASE_PATH.'.assets/plugins/BotAI/base/bali.md';
 
         // Чтение содержимого файла
         $fileContent = file_get_contents($filePath);
@@ -69,8 +68,8 @@ class RunAI extends Command
             "textSearchIndex"=>[
                 "chunkingStrategy"=>[
                     "staticStrategy"=>[
-                        "maxChunkSizeTokens"=>"800",
-                        "chunkOverlapTokens"=>"400"
+                        "maxChunkSizeTokens"=>config('services.yandex_cloud.max_chunk_size.value') ?? "800",
+                        "chunkOverlapTokens"=>config('services.yandex_cloud.chunk_overlap.value') ?? "400"
                     ]
                 ]
             ]

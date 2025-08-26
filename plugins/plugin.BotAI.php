@@ -38,20 +38,7 @@ Event::listen(['evolution.OnLoadSettings'], function () {
     }
 });
 
-Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
-    // Получаем настройки из конфига
-    $folderId = config('services.yandex_cloud.folder_id.value') ?? '';
-    $iamToken = config('services.yandex_cloud.iam_token.value') ?? '';
-    $searchIndex = config('services.yandex_cloud.search_index_id.value') ?? '';
-    $instruction = config('services.yandex_cloud.instruction.value') ?? 'Ты полезный AI помощник. Отвечай на вопросы пользователей вежливо и информативно.';
-    $modelUriValue = config('services.yandex_cloud.model_uri.value') ?? 'yandexgpt-lite/latest';
-    
-    // Формируем modelUri
-    $modelUri = '';
-    if (!empty($folderId) && !empty($modelUriValue)) {
-        $modelUri = "gpt://" . $folderId . "/" . $modelUriValue;
-    }
-    
+Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) { 
     // Генерируем/получаем ID сессии пользователя
     $sessionId = $_COOKIE['botai_session'] ?? uniqid('botai_', true);
     
