@@ -29,14 +29,21 @@ class BotAIController
                 ], 400);
             }
 
-            // Если нет assistant_id или thread_id, создаем их
-            if (empty($assistantId) || empty($threadId)) {
+            // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ СЕССИИ В БАЗЕ
+            $session = BotaiSession::where('session_id', $sessionId)->first();
+            
+            // Если сессии нет в базе, создаем новую
+            if (!$session) {
                 $assistantData = $this->createAssistantInternal($sessionId);
                 if (!$assistantData['success']) {
                     return response()->json($assistantData, 500);
                 }
                 $assistantId = $assistantData['assistant_id'];
                 $threadId = $assistantData['thread_id'];
+            } else {
+                // Если сессия существует, используем ее assistant_id и thread_id
+                $assistantId = $session->assistant_id;
+                $threadId = $session->thread_id;
             }
 
             // Получаем IAM-токен из конфигурации

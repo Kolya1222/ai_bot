@@ -1,14 +1,14 @@
 .chat-container {
     position: fixed;
     bottom: 20px;
-    right: 20px;
+    left: 20px;
     z-index: 10000;
 }
 
 .chat-button {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--green-primary) 0%, var(--green-city) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -35,12 +35,12 @@
     flex-direction: column;
     position: absolute;
     bottom: 70px;
-    right: 0;
+    left: 20;
     overflow: hidden;
 }
 
 .chat-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--green-primary) 0%, var(--green-city) 100%);
     color: white;
     padding: 15px;
     display: flex;
@@ -112,7 +112,7 @@
 }
 
 .user-message .message-content {
-    background: #667eea;
+    background: var(--green-primary);
     color: white;
     border-bottom-right-radius: 5px;
 }
@@ -160,11 +160,11 @@
 }
 
 .chat-input textarea:focus {
-    border-color: #667eea;
+    border-color: var(--green-primary);
 }
 
 .chat-input button {
-    background: #667eea;
+    background: var(--green-city);
     color: white;
     border: none;
     border-radius: 20px;
@@ -176,7 +176,7 @@
 }
 
 .chat-input button:hover {
-    background: #5a6fd8;
+    background: var(--green-primary);
 }
 
 .loading .message-content::after {
@@ -219,15 +219,15 @@
 }
 
 .chat-messages::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--lgreen-light);
     border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--green-city);
     border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: var(--green-primary);
 }

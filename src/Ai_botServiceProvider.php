@@ -21,10 +21,15 @@ class Ai_botServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../publishable/assets'  => MODX_BASE_PATH . 'assets',
         ]);
+        $this->app->registerRoutingModule(
+            'BotAI module',
+            __DIR__ . '/../routes_module.php'
+        );
     }
     public function boot()
     {
         $this->mapWebRoutes();
+        $this->loadViewsFrom(__DIR__ . '/../views', $this->namespace);
     }
     protected function mapWebRoutes(): void
     {
