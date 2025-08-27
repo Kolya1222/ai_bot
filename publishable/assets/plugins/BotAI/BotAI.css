@@ -8,7 +8,7 @@
 .chat-button {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, var(--green-primary) 0%, var(--green-city) 100%);
+    background: linear-gradient(135deg, #198754 0%, #28a745 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -40,7 +40,7 @@
 }
 
 .chat-header {
-    background: linear-gradient(135deg, var(--green-primary) 0%, var(--green-city) 100%);
+    background: linear-gradient(135deg, #198754 0%, #28a745 100%);
     color: white;
     padding: 15px;
     display: flex;
@@ -112,7 +112,7 @@
 }
 
 .user-message .message-content {
-    background: var(--green-primary);
+    background: #198754;
     color: white;
     border-bottom-right-radius: 5px;
 }
@@ -160,11 +160,11 @@
 }
 
 .chat-input textarea:focus {
-    border-color: var(--green-primary);
+    border-color: #198754;
 }
 
 .chat-input button {
-    background: var(--green-city);
+    background: #28a745;
     color: white;
     border: none;
     border-radius: 20px;
@@ -176,7 +176,7 @@
 }
 
 .chat-input button:hover {
-    background: var(--green-primary);
+    background: #198754;
 }
 
 .loading .message-content::after {
@@ -219,15 +219,47 @@
 }
 
 .chat-messages::-webkit-scrollbar-track {
-    background: var(--lgreen-light);
+    background: #e8f5e933;
     border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: var(--green-city);
+    background: #28a745;
     border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: var(--green-primary);
+    background: #198754;
+}
+.message-content {
+    white-space: pre-wrap; /* Сохраняет переносы строк */
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+/* Стили для маркированных списков */
+.message-content {
+    ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0.5em 0;
+    }
+    
+    li {
+        position: relative;
+        padding-left: 1.2em;
+        margin-bottom: 0.3em;
+    }
+    
+    li:before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: #666;
+    }
+}
+.message-content br {
+    content: '';
+    display: block;
+    margin-bottom: 0.3em;
 }
