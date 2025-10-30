@@ -321,103 +321,134 @@ class BotAIController
         ];
     }
 
-    private function sendToYandex($message, $assistantId, $threadId, $iamToken)
-    {
-        if (empty($iamToken)) {
-            return 'Ошибка: не настроен API ключ';
-        }
+	private function sendToYandex($message, $assistantId, $threadId, $iamToken)
+	{
+		if (empty($iamToken)) {
+			return 'Ошибка: не настроен API ключ';
+		}
 
-        // 1. Добавляем сообщение в тред
-        $requestBody = [
-            'threadId' => $threadId,
-            'content' => [
-                'content' => [
-                    [
-                        'text' => [
-                            'content' => $message
-                        ]
-                    ]
-                ]
-            ]
-        ];
+		// 1. Добавляем сообщение в тред
+		$requestBody = [
+			'threadId' => $threadId,
+			'content' => [
+				'content' => [
+					[
+						'text' => [
+							'content' => $message
+						]
+					]
+				]
+			]
+		];
 
-        $jsonData = json_encode($requestBody, JSON_UNESCAPED_UNICODE);
-        $ch = curl_init();
-        
-        $url = "https://rest-assistant.api.cloud.yandex.net/assistants/v1/messages";
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Api-Key ' . $iamToken,
-            'Content-Type: application/json'
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode !== 200) {
-            error_log("Ошибка добавления сообщения: " . $response);
-            return 'Ошибка отправки сообщения';
-        }
+		$jsonData = json_encode($requestBody, JSON_UNESCAPED_UNICODE);
+		$ch = curl_init();
 
-        // 2. Запускаем ассистента
-        $requestBody = [
-            'assistantId' => $assistantId,
-            'threadId' => $threadId
-        ];
-        
-        $jsonData = json_encode($requestBody);
-        $ch = curl_init();
-        
-        // Эндпоинт для запуска ассистента
-        $url = "https://rest-assistant.api.cloud.yandex.net/assistants/v1/runs";
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Api-Key ' . $iamToken,
-            'Content-Type: application/json'
-        ]);
-        
-        $response = curl_exec($ch);
-        $runData = json_decode($response, true);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode !== 200 || !isset($runData['id'])) {
-            error_log("Ошибка запуска ассистента: " . $response);
-            return 'Ошибка запуска ассистента';
-        }
-        
-        $runId = $runData['id'];
-        
-        // 3. Ожидаем завершения и получаем результат
-        $maxAttempts = 10;
-        $attempt = 0;
-        while ($attempt < $maxAttempts) {
-            sleep(2); // Ждем 2 секунды между проверками
-            $attempt++;
-            $ch = curl_init();
-            // Эндпоинт для проверки статуса run
-            $url = "https://rest-assistant.api.cloud.yandex.net/assistants/v1/runs/".$runId;
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Authorization: Api-Key ' . $iamToken,
-                'Content-Type: application/json'
-            ]);
-            
-            $response = curl_exec($ch);
-            $statusData = json_decode($response, true);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            break;
-        }
-        
-        return $statusData["state"]["completed_message"]["content"]["content"][0]["text"]["content"] ?? 'Нет ответа от ассистента';;
-    }
+		$url = "https://rest-assistant.api.cloud.yandex.net/assistants/v1/messages";
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, [
+			'Authorization: Api-Key ' . $iamToken,
+			'Content-Type: application/json'
+		]);
+
+		$response = curl_exec($ch);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+
+		if ($httpCode !== 200) {
+			error_log("Ошибка добавления сообщения: HTTP $httpCode - " . $response);
+			return 'Ошибка отправки сообщения в тред';
+		}
+
+		// 2. Запускаем ассистента
+		$requestBody = [
+			'assistantId' => $assistantId,
+			'threadId' => $threadId
+		];
+
+		$jsonData = json_encode($requestBody);
+		$ch = curl_init();
+
+		$url = "https://rest-assistant.api.cloud.yandex.net/assistants/v1/runs";
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, [
+			'Authorization: Api-Key ' . $iamToken,
+			'Content-Type: application/json'
+		]);
+
+		$response = curl_exec($ch);
+		$runData = json_decode($response, true);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+
+		if ($httpCode !== 200 || !isset($runData['id'])) {
+			error_log("Ошибка запуска ассистента: HTTP $httpCode - " . $response);
+			return 'Ошибка запуска ассистента';
+		}
+
+		$runId = $runData['id'];
+
+		// 3. Ожидаем завершения и получаем результат
+		$maxAttempts = 30;
+		$attempt = 0;
+
+		while ($attempt < $maxAttempts) {
+			sleep(2);
+			$attempt++;
+
+			$ch = curl_init();
+			$url = "https://rest-assistant.api.cloud.yandex.net/assistants/v1/runs/" . $runId;
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, [
+				'Authorization: Api-Key ' . $iamToken,
+				'Content-Type: application/json'
+			]);
+
+			$response = curl_exec($ch);
+			$statusData = json_decode($response, true);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+
+			if ($httpCode !== 200) {
+				error_log("Ошибка проверки статуса: HTTP $httpCode - " . $response);
+				return 'Ошибка проверки статуса выполнения';
+			}
+
+			$state = $statusData['state']['status'] ?? ''; // Исправлено: state.status
+
+			error_log("Статус выполнения: " . $state . ", попытка: " . $attempt);
+
+			if ($state === 'COMPLETED') {
+				// Успешное завершение - извлекаем ответ из completed_message
+				if (isset($statusData['state']['completed_message']['content']['content'][0]['text']['content'])) {
+					$responseText = $statusData['state']['completed_message']['content']['content'][0]['text']['content'];
+					error_log("Получен ответ от ассистента: " . $responseText);
+					return $responseText;
+				} else {
+					error_log("Ответ завершен, но не найден текст: " . json_encode($statusData));
+					return 'Ассистент ответил, но текст не найден';
+				}
+			} elseif ($state === 'FAILED' || $state === 'CANCELLED') {
+				$errorMessage = $statusData['state']['error']['message'] ?? 'Unknown error';
+				error_log("Run завершился с ошибкой: " . $errorMessage);
+				return 'Ассистент завершил работу с ошибкой: ' . $errorMessage;
+			}
+
+			// Продолжаем ожидать если статус 'RUNNING' или 'QUEUED'
+		}
+
+		if ($attempt >= $maxAttempts) {
+			error_log("Превышено время ожидания ответа от ассистента");
+			return 'Превышено время ожидания ответа от ассистента';
+		}
+
+		return 'Нет ответа от ассистента';
+	}
 }
