@@ -1,10 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 use kolya2320\Ai_bot\Controllers\BotAIController;
 use kolya2320\Ai_bot\Controllers\McpServerController;
-use Illuminate\Support\Facades\Log;
 
 // Маршруты для AI ассистента
 Route::prefix('bot-ai')->group(function () {
