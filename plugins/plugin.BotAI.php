@@ -45,56 +45,6 @@ Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
     if (!isset($_COOKIE['botai_session'])) {
         setcookie('botai_session', $sessionId, time() + (365 * 24 * 60 * 60), '/');
     }
-    
-    // ВСЕГДА проверяем, есть ли у сессии ассистент и тред
-    $assistantId = $_COOKIE['botai_assistant_id'] ?? '';
-    $threadId = $_COOKIE['botai_thread_id'] ?? '';
-    
-    if (empty($assistantId) || empty($threadId)) {
-        // Вместо прямого вызова функции делаем AJAX запрос
-        $modx->regClientScript('
-            <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                // Функция для создания ассистента через AJAX
-                function createAssistant() {
-                    const sessionId = "' . $sessionId . '";
-                    
-                    fetch("/bot-ai/create-assistant", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": document.querySelector(\'meta[name="csrf-token"]\').content,
-                            "X-Requested-With": "XMLHttpRequest"
-                        },
-                        body: JSON.stringify({
-                            session_id: sessionId
-                        }),
-                        credentials: "same-origin"
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.assistant_id && data.thread_id) {
-                            // Сохраняем ID в куки
-                            document.cookie = "botai_assistant_id=" + data.assistant_id + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
-                            document.cookie = "botai_thread_id=" + data.thread_id + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
-                            
-                            console.log("Ассистент создан успешно");
-                        } else {
-                            console.error("Ошибка создания ассистента:", data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Ошибка сети:", error);
-                    });
-                }
-                
-                // Вызываем создание ассистента
-                createAssistant();
-            });
-            </script>
-        ');
-    }
-    
     // Регистрируем CSS и JS
     $modx->regClientCSS('<link rel="stylesheet" href="' . MODX_SITE_URL . 'assets/plugins/BotAI/BotAI.css">');
     $modx->regClientScript('<script src="' . MODX_SITE_URL . 'assets/plugins/BotAI/BotAI.js" defer></script>');

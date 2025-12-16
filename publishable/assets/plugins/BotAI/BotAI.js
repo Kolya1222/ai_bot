@@ -83,7 +83,7 @@ class BotAIChat {
         if (!message) return;
 
         // Проверяем наличие необходимых данных
-        if (!this.sessionId || !this.assistantId || !this.threadId) {
+        if (!this.sessionId) {
             this.showError('Ошибка инициализации чата. Перезагрузите страницу.');
             return;
         }
