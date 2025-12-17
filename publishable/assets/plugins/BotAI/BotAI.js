@@ -1,16 +1,14 @@
 class BotAIChat {
     constructor() {
         this.sessionId = this.getCookie('botai_session') || '';
-        this.assistantId = this.getCookie('botai_assistant_id') || '';
-        this.threadId = this.getCookie('botai_thread_id') || '';
         this.isOpen = false;
+        this.isLoading = false;
         
         this.initializeChat();
         this.loadChatHistory();
     }
 
     initializeChat() {
-        // Элементы интерфейса
         this.chatButton = document.getElementById('chatButton');
         this.chatWindow = document.getElementById('chatWindow');
         this.chatClose = document.getElementById('chatClose');
@@ -18,7 +16,6 @@ class BotAIChat {
         this.chatInput = document.getElementById('chatInput');
         this.chatSend = document.getElementById('chatSend');
 
-        // Обработчики событий
         this.chatButton.addEventListener('click', () => this.toggleChat());
         this.chatClose.addEventListener('click', () => this.closeChat());
         this.chatSend.addEventListener('click', () => this.sendMessage());
@@ -34,7 +31,6 @@ class BotAIChat {
             this.adjustTextareaHeight();
         });
 
-        // Закрытие по клику вне чата
         document.addEventListener('click', (e) => {
             if (this.isOpen && 
                 !this.chatWindow.contains(e.target) && 
@@ -53,13 +49,11 @@ class BotAIChat {
     }
 
     openChat() {
-        this.chatWindow.style.display = 'flex'; // меняем на flex
+        this.chatWindow.style.display = 'flex';
         this.chatButton.style.display = 'none';
         this.isOpen = true;
         this.chatInput.focus();
         this.scrollToBottom();
-        
-        // Предотвращаем прокрутку body при открытом чате
         document.body.style.overflow = 'hidden';
     }
 
@@ -67,8 +61,6 @@ class BotAIChat {
         this.chatWindow.style.display = 'none';
         this.chatButton.style.display = 'flex';
         this.isOpen = false;
-        
-        // Возвращаем прокрутку body
         document.body.style.overflow = '';
     }
 
@@ -80,34 +72,23 @@ class BotAIChat {
     async sendMessage() {
         const message = this.chatInput.value.trim();
         
-        if (!message) return;
+        if (!message || this.isLoading) return;
 
-        // Проверяем наличие необходимых данных
-        if (!this.sessionId) {
-            this.showError('Ошибка инициализации чата. Перезагрузите страницу.');
-            return;
-        }
-
-        // Очищаем поле ввода
         this.chatInput.value = '';
         this.chatInput.style.height = 'auto';
 
-        // Добавляем сообщение пользователя в чат
         this.addMessage('user', message);
 
-        // Показываем индикатор загрузки
         const loadingMessage = this.addMessage('bot', 'Думаю...', true);
+        this.isLoading = true;
 
         try {
-            const response = await this.makeRequest('send_message', {
+            const response = await this.makeRequest('send', {
                 session_id: this.sessionId,
-                message: message,
-                assistant_id: this.assistantId,
-                thread_id: this.threadId
+                message: message
             });
 
             if (response.success) {
-                // Обновляем сообщение с ответом
                 loadingMessage.querySelector('.message-content').textContent = response.bot_response;
                 loadingMessage.querySelector('.message-time').textContent = response.timestamp;
                 loadingMessage.classList.remove('loading');
@@ -118,6 +99,8 @@ class BotAIChat {
             loadingMessage.querySelector('.message-content').textContent = 'Ошибка: ' + error.message;
             loadingMessage.classList.remove('loading');
             console.error('Ошибка отправки сообщения:', error);
+        } finally {
+            this.isLoading = false;
         }
 
         this.scrollToBottom();
@@ -127,15 +110,13 @@ class BotAIChat {
         if (!this.sessionId) return;
 
         try {
-            const response = await this.makeRequest('load_history', {
+            const response = await this.makeRequest('history', {
                 session_id: this.sessionId
             });
 
-            if (response.messages && response.messages.length > 0) {
-                // Очищаем стандартное приветственное сообщение
+            if (response.success && response.messages && response.messages.length > 0) {
                 this.chatMessages.innerHTML = '';
                 
-                // Добавляем историю сообщений
                 response.messages.forEach(msg => {
                     this.addMessage(msg.type, msg.message, false, msg.time);
                 });
@@ -168,13 +149,6 @@ class BotAIChat {
         return messageDiv;
     }
 
-    showError(message) {
-        const errorMessage = this.addMessage('bot', message);
-        setTimeout(() => {
-            errorMessage.remove();
-        }, 5000);
-    }
-
     scrollToBottom() {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
@@ -186,25 +160,21 @@ class BotAIChat {
         });
     }
 
-    async makeRequest(action, data) {
+    async makeRequest(endpoint, data) {
         try {
-            // Получаем CSRF-токен
             const csrfToken = this.getCsrfToken();
             
-            // Добавляем CSRF-токен в данные запроса
-            const requestData = {
-                ...data,
-                _token: csrfToken
-            };
-
-            const response = await fetch(`/bot-ai/${action.replace('_', '-')}`, {
+            const response = await fetch(`/botai/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify({
+                    ...data,
+                    _token: csrfToken
+                })
             });
 
             if (!response.ok) {
@@ -219,19 +189,16 @@ class BotAIChat {
     }
 
     getCsrfToken() {
-        // Пытаемся получить токен из meta-тега
         const metaTag = document.querySelector('meta[name="csrf-token"]');
         if (metaTag) {
             return metaTag.content;
         }
         
-        // Ищем в форме
         const formToken = document.querySelector('input[name="_token"]');
         if (formToken) {
             return formToken.value;
         }
         
-        // Ищем в window (если был установлен глобально)
         if (window.Laravel && window.Laravel.csrfToken) {
             return window.Laravel.csrfToken;
         }
@@ -248,9 +215,7 @@ class BotAIChat {
     }
 }
 
-// Инициализация чата после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
-    // Проверяем, что элементы чата существуют на странице
     if (document.getElementById('chatButton')) {
         new BotAIChat();
     }

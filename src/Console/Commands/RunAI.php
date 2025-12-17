@@ -1,131 +1,200 @@
-<?php 
+<?php
 namespace kolya2320\Ai_bot\Console\Commands;
- 
+
 use Illuminate\Console\Command;
- 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+
 class RunAI extends Command
 {
-    // Название и описание команды
     protected $signature = 'botai:run';
     protected $description = 'Run the AI bot';
- 
-    public function __construct()
-    {
-        parent::__construct();
-    }
- 
+    
+    private $client;
+    private $apiKey;
+    private $folderId;
+
     public function handle()
     {
-        // IAM-токен
-        $iamTokenapi = config('services.yandex_cloud.iam_token.value') ?? '';
-        $folderid = config('services.yandex_cloud.folder_id.value') ?? '';
-        //Загрузка файлов для яндекс клауд
-        $filePath = MODX_BASE_PATH.config('services.yandex_cloud.text_ai_path.value') ?? MODX_BASE_PATH.'.assets/plugins/BotAI/base/bali.md';
+        $this->apiKey = config('services.yandex_cloud.api_key.value');
+        $this->folderId = config('services.yandex_cloud.folder_id.value');
+        
+        $baseDir = MODX_BASE_PATH . config('services.yandex_cloud.text_ai_path.value');
+        $filesToUpload = config('services.yandex_cloud.files_to_upload.value');
+        
+        $fileNames = array_map('trim', explode(',', $filesToUpload));
+        $assistantName = config('services.yandex_cloud.assistant_name.value');
+        $expirationDays = (int) config('services.yandex_cloud.index_expiration_days.value');
 
-        // Чтение содержимого файла
-        $fileContent = file_get_contents($filePath);
+        $this->client = new Client(['timeout' => 30]);
 
-        // Кодирование содержимого файла в Base64
-        $base64Content = base64_encode($fileContent);
-
-        // Создание массива для JSON-запроса
-        $requestBody = [
-            'folderId' => $folderid, // Замените на ваш идентификатор каталога
-            'content' => $base64Content
-        ];
-        // Преобразование массива в JSON
-        $jsonData = json_encode($requestBody, JSON_UNESCAPED_SLASHES);
-
-        // Инициализация cURL
-        $ch = curl_init();
-
-        // Установка URL и других необходимых параметров
-        curl_setopt($ch, CURLOPT_URL, "https://rest-assistant.api.cloud.yandex.net/files/v1/files");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Api-Key ' . $iamTokenapi,
-            'Content-Type: application/json'
-        ]);
-
-        // Выполнение запроса и получение ответа
-        $response = curl_exec($ch);
-
-        // Проверка на ошибки
-        if (curl_errno($ch)) {
-            echo 'Ошибка cURL: ' . curl_error($ch);
-        } else {
-            // Декодирование JSON-ответа
-            $responseFile = json_decode($response, true);
+        try {
+            $this->info('Загружаем файлы...');
+            $fileIds = $this->uploadFiles($baseDir, $fileNames);
+            
+            if (empty($fileIds)) {
+                $this->error('Не удалось загрузить ни одного файла');
+                return Command::FAILURE;
+            }
+            
+            $this->info('Создаем Vector Store...');
+            $vectorStoreId = $this->createVectorStore($fileIds, $assistantName, $expirationDays);
+            
+            $this->info('Ожидаем готовности индекса...');
+            $finalStatus = $this->waitForVectorStoreReady($vectorStoreId);
+            
+            if ($finalStatus === 'completed') {
+                $this->info("Vector Store готов к работе! ID: " . $vectorStoreId);
+                return Command::SUCCESS;
+            } else {
+                $this->error("Vector Store завершился со статусом: " . $finalStatus);
+                return Command::FAILURE;
+            }
+            
+        } catch (\Exception $e) {
+            $this->error('Ошибка: ' . $e->getMessage());
+            return Command::FAILURE;
         }
-        $FileID = $responseFile["id"];
-        //Создание поискового индекса
-        // Создание массива для JSON-запроса
-        $requestBody = [
-            'folderId' => $folderid,
-            'fileIds' => [$FileID],
-            "textSearchIndex"=>[
-                "chunkingStrategy"=>[
-                    "staticStrategy"=>[
-                        "maxChunkSizeTokens"=>config('services.yandex_cloud.max_chunk_size.value') ?? "800",
-                        "chunkOverlapTokens"=>config('services.yandex_cloud.chunk_overlap.value') ?? "400"
+    }
+
+    private function uploadFiles(string $baseDir, array $fileNames): array
+    {
+        $fileIds = [];
+        
+        foreach ($fileNames as $fileName) {
+            $filePath = $baseDir . $fileName;
+            
+            if (!file_exists($filePath)) {
+                $this->error("Файл не найден: " . $filePath);
+                continue;
+            }
+            
+            try {
+                $response = $this->client->post('https://rest-assistant.api.cloud.yandex.net/v1/files', [
+                    'multipart' => [
+                        [
+                            'name' => 'file',
+                            'contents' => fopen($filePath, 'r'),
+                            'filename' => $fileName
+                        ],
+                        [
+                            'name' => 'purpose',
+                            'contents' => 'assistants'
+                        ]
+                    ],
+                    'headers' => [
+                        'Authorization' => 'Api-Key ' . $this->apiKey,
+                        'OpenAI-Project' => $this->folderId,
                     ]
+                ]);
+
+                $data = json_decode($response->getBody()->getContents(), true);
+                
+                if (empty($data['id'])) {
+                    $this->error("Не получен ID для файла " . $fileName);
+                    continue;
+                }
+                
+                $fileIds[] = $data['id'];
+                $this->info("Файл " . $fileName . " загружен, ID: " . $data['id']);
+                
+            } catch (RequestException $e) {
+                $error = $this->getGuzzleError($e);
+                $this->error("Ошибка загрузки файла " . $fileName . ": " . $error);
+                continue;
+            }
+        }
+        
+        return $fileIds;
+    }
+
+    private function createVectorStore(array $fileIds, string $name, int $expirationDays): string
+    {
+        try {
+            $requestData = [
+                'name' => $name,
+                'file_ids' => $fileIds,
+            ];
+            
+            if ($expirationDays > 0) {
+                $requestData['expires_after'] = [
+                    'anchor' => 'last_active_at',
+                    'days' => $expirationDays
+                ];
+            }
+            
+            $response = $this->client->post('https://rest-assistant.api.cloud.yandex.net/v1/vector_stores', [
+                'json' => $requestData,
+                'headers' => [
+                    'Authorization' => 'Api-Key ' . $this->apiKey,
+                    'OpenAI-Project' => $this->folderId,
+                    'Content-Type' => 'application/json'
                 ]
-            ]
-        ];
-        // Преобразование массива в JSON
-        $jsonData = json_encode($requestBody, JSON_UNESCAPED_SLASHES);
+            ]);
 
-        // Инициализация cURL
-        $ch = curl_init();
+            $data = json_decode($response->getBody()->getContents(), true);
+            
+            if (empty($data['id'])) {
+                throw new \Exception('Не получен ID Vector Store');
+            }
 
-        // Установка URL и других необходимых параметров
-        curl_setopt($ch, CURLOPT_URL, "https://rest-assistant.api.cloud.yandex.net/assistants/v1/searchIndex");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Api-Key ' . $iamTokenapi,
-            'Content-Type: application/json'
-        ]);
-        // Выполнение запроса и получение ответа
-        $response = curl_exec($ch);
+            return $data['id'];
 
-        // Проверка на ошибки
-        if (curl_errno($ch)) {
-            echo 'Ошибка cURL: ' . curl_error($ch);
-        } else {
-            // Декодирование JSON-ответа
-            $responsearch = json_decode($response, true);
+        } catch (RequestException $e) {
+            $error = $this->getGuzzleError($e);
+            throw new \Exception('Ошибка создания Vector Store: ' . $error);
         }
-        // Закрытие cURL-сессии
-        curl_close($ch);
-        $SearchID = $responsearch["id"];
-        sleep(10);
-        $ch = curl_init();
-        // Установка URL и других необходимых параметров
-        curl_setopt($ch, CURLOPT_URL, "https://operation.api.cloud.yandex.net/operations/".$SearchID);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Api-Key ' . $iamTokenapi,
-            'Content-Type: application/json'
-        ]);
-        // Выполнение запроса и получение ответа
-        $response = curl_exec($ch);
+    }
 
-        // Проверка на ошибки
-        if (curl_errno($ch)) {
-            echo 'Ошибка cURL: ' . curl_error($ch);
-        } else {
-            // Декодирование JSON-ответа
-            $responfinalserch = json_decode($response, true);
+    private function waitForVectorStoreReady(string $vectorStoreId): string
+    {
+        $maxAttempts = 90;
+        $attempt = 0;
+
+        while ($attempt < $maxAttempts) {
+            sleep(2);
+            $attempt++;
+
+            try {
+                $response = $this->client->get("https://rest-assistant.api.cloud.yandex.net/v1/vector_stores/{$vectorStoreId}", [
+                    'headers' => [
+                        'Authorization' => 'Api-Key ' . $this->apiKey,
+                        'OpenAI-Project' => $this->folderId
+                    ]
+                ]);
+                
+                $data = json_decode($response->getBody()->getContents(), true);
+                $status = $data['status'] ?? 'unknown';
+
+                if (in_array($status, ['completed', 'failed'])) {
+                    return $status;
+                }
+
+            } catch (RequestException $e) {
+                if ($attempt < $maxAttempts - 1) {
+                    continue;
+                }
+            }
         }
 
-        // Закрытие cURL-сессии
-        curl_close($ch);
-        $searchIndex = $responfinalserch["response"]["id"];
-        echo "Поисковый индекс:";
-        print_r($searchIndex);
+        return 'timeout';
+    }
+
+    private function getGuzzleError(RequestException $e): string
+    {
+        if (!$e->hasResponse()) {
+            return $e->getMessage();
+        }
+
+        $response = $e->getResponse();
+        $statusCode = $response->getStatusCode();
+        $body = $response->getBody()->getContents();
+        
+        try {
+            $data = json_decode($body, true);
+            return "{$statusCode}: " . ($data['message'] ?? ($data['error'] ?? $body));
+        } catch (\Exception $jsonError) {
+            return "{$statusCode}: " . $response->getReasonPhrase();
+        }
     }
 }

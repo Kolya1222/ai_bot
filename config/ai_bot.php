@@ -12,11 +12,11 @@ return [
         'value' => '',
         'desc' => 'Идентификатор каталога в Yandex Cloud'
     ],
-    'iam_token' => [
+    'api_key' => [
         'caption' => 'API Key',
         'type' => 'text',
         'value' => '',
-        'desc' => 'Токен аутентификации для Yandex Cloud API'
+        'desc' => 'Ключ аутентификации для Yandex Cloud API'
     ],
     'search_index_id' => [
         'caption' => 'Search Index ID',
@@ -39,19 +39,73 @@ return [
     'text_ai_path' => [
         'caption' => 'Директория с данными для ИИ',
         'type' => 'text',
-        'value' => 'assets/plugins/BotAI/base/bali.md',
+        'value' => 'assets/plugins/BotAI/base/',
         'desc' => 'Место откуда ИИ будет брать данные для ответов'
     ],
-    'max_chunk_size' => [
-        'caption' => 'Максимальный размер чанка при разбитии текста',
+    'files_to_upload' => [
+        'caption' => 'Файлы для загрузки',
         'type' => 'text',
-        'value' => '800',
-        'desc' => 'В Яндексе 2 вида чанков основной и дополнительный для перекрытия большего объема текста'
+        'value' => 'bali.md',
+        'desc' => 'Список файлов для загрузки через запятую (например: bali.md,kazakhstan.md)'
     ],
-    'chunk_overlap' => [
-        'caption' => 'Перекрытие соседних чанков',
+    'temperature' => [
+        'caption' => 'Temperature',
         'type' => 'text',
-        'value' => '400',
-        'desc' => 'Если при разбитии на чанк ответ разобъется на 2 части это должно помочь'
+        'value' => '0.3',
+        'desc' => 'Креативность ответов (0.0-1.0). Чем выше значение, тем более креативными и случайными будут ответы'
+    ],
+    'max_output_tokens' => [
+        'caption' => 'Максимальное количество токенов',
+        'type' => 'text',
+        'value' => '1000',
+        'desc' => 'Максимальное количество токенов в ответе модели'
+    ],
+    'top_p' => [
+        'caption' => 'Top-P',
+        'type' => 'text',
+        'value' => '',
+        'desc' => 'Альтернатива temperature для контроля случайности (0.0-1.0). Оставьте пустым для использования значения по умолчанию'
+    ],
+    'enable_web_search' => [
+        'caption' => 'Включить веб-поиск',
+        'type' => 'checkbox',
+        'value' => '0',
+        'desc' => 'Включить инструмент web_search для поиска в интернете'
+    ],
+    'web_search_domains' => [
+        'caption' => 'Домены для веб-поиска',
+        'type' => 'text',
+        'value' => 'habr.ru',
+        'desc' => 'Разрешенные домены для веб-поиска через запятую (например: habr.ru,vc.ru)'
+    ],
+    'web_search_region' => [
+        'caption' => 'Регион для веб-поиска',
+        'type' => 'text',
+        'value' => '213',
+        'desc' => 'Регион для веб-поиска (213 - Москва, 2 - Санкт-Петербург, и т.д.)'
+    ],
+    'enable_streaming' => [
+        'caption' => 'Включить стриминг',
+        'type' => 'checkbox',
+        'value' => '0',
+        'desc' => 'Включить потоковую передачу ответов (Server-Sent Events)'
+    ],
+    'assistant_name' => [
+        'caption' => 'Название ассистента',
+        'type' => 'text',
+        'value' => 'Помощник поддержки',
+        'desc' => 'Имя для ассистента и векторного хранилища'
+    ],
+    'index_expiration_days' => [
+        'caption' => 'Срок жизни индекса (дней)',
+        'type' => 'text',
+        'value' => '3',
+        'desc' => 'Через сколько дней индекс будет удален'
+    ],
+    'base_url' => [
+        'caption' => 'Базовый URL API',
+        'type' => 'text',
+        'value' => 'https://rest-assistant.api.cloud.yandex.net/v1',
+        'desc' => 'Базовый URL для API Yandex Assistant'
     ],
 ];
