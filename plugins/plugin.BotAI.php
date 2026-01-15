@@ -1,4 +1,5 @@
 <?php
+
 namespace kolya2320\Ai_bot\plugins;
 
 use Illuminate\Support\Facades\Event;
@@ -21,6 +22,23 @@ Event::listen(['evolution.OnLoadSettings'], function () {
             $table->index('timestamp');
         });
     }
+
+    if (!Schema::hasTable('ai_bot_settings')) {
+        Schema::create('ai_bot_settings', function ($table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->text('value')->nullable();
+            $table->string('caption');
+            $table->string('type')->default('text');
+            $table->text('description')->nullable();
+            $table->string('category')->default('general');
+            $table->integer('sort_order')->default(0);
+            $table->timestamps();
+            
+            $table->index('key');
+            $table->index('category');
+        });
+    }
     
     // Удаляем старую таблицу сессий если существует
     if (Schema::hasTable('botai_sessions')) {
@@ -34,13 +52,9 @@ Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
     if (!isset($_COOKIE['botai_session'])) {
         setcookie('botai_session', $sessionId, time() + (365 * 24 * 60 * 60), '/');
     }
-    
-    // Регистрируем CSS и JS
     $modx->regClientCSS('<link rel="stylesheet" href="' . MODX_SITE_URL . 'assets/plugins/BotAI/BotAI.css">');
     $modx->regClientScript('<script src="' . MODX_SITE_URL . 'assets/plugins/BotAI/BotAI.js" defer></script>');
     $modx->regClientHTMLBlock('<meta name="csrf-token" content="'.csrf_token().'">');
-    
-    // HTML структура чата
     $chatHTML = '    
 <div class="chat-container">
     <div class="chat-button" id="chatButton">

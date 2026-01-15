@@ -2,8 +2,10 @@
 
 use kolya2320\Ai_bot\Controllers\BotAIManagerController;
 use Illuminate\Support\Facades\Route;
+
 // Главная страница менеджера
 Route::get('', [BotAIManagerController::class, 'index'])->name('ai-bot.manager.index');
+
 // API endpoints
 Route::prefix('api')->group(function () {
     Route::get('/sessions', [BotAIManagerController::class, 'getSessions'])->name('ai-bot.sessions.list');
@@ -11,4 +13,11 @@ Route::prefix('api')->group(function () {
     Route::get('/search', [BotAIManagerController::class, 'searchMessages'])->name('ai-bot.messages.search');
     Route::get('/statistics', [BotAIManagerController::class, 'getStatistics'])->name('ai-bot.statistics');
     Route::post('/sessions/{sessionId}', [BotAIManagerController::class, 'deleteSession'])->name('ai-bot.sessions.delete');
+    
+    // Новые роуты для конфигурации
+    Route::get('/config', [BotAIManagerController::class, 'getConfig'])->name('ai-bot.config.get');
+    Route::get('/config/info', [BotAIManagerController::class, 'getConfigInfo'])->name('ai-bot.config.info');
+    Route::post('/config', [BotAIManagerController::class, 'saveConfig'])->name('ai-bot.config.save');
+    Route::post('/config/reset', [BotAIManagerController::class, 'resetConfig'])->name('ai-bot.config.reset');
+    Route::post('/config/reload', [BotAIManagerController::class, 'reloadConfig'])->name('ai-bot.config.reload');
 });

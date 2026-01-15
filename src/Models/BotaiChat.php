@@ -20,9 +20,6 @@ class BotaiChat extends Model
         'timestamp' => 'datetime',
     ];
 
-    /**
-     * Получить последний response_id для сессии
-     */
     public static function getLastResponseId(string $sessionId): ?string
     {
         $lastMessage = self::where('session_id', $sessionId)
@@ -33,9 +30,6 @@ class BotaiChat extends Model
         return $lastMessage ? $lastMessage->last_response_id : null;
     }
 
-    /**
-     * Получить историю чата для сессии
-     */
     public static function getHistory(string $sessionId, int $limit = 50)
     {
         return self::where('session_id', $sessionId)
@@ -44,9 +38,6 @@ class BotaiChat extends Model
             ->get();
     }
 
-    /**
-     * Сохранить сообщение пользователя
-     */
     public static function saveUserMessage(string $sessionId, string $message): self
     {
         return self::create([
@@ -58,9 +49,6 @@ class BotaiChat extends Model
         ]);
     }
 
-    /**
-     * Сохранить ответ бота
-     */
     public static function saveBotResponse(string $sessionId, string $response, string $responseId): self
     {
         return self::create([

@@ -92,6 +92,10 @@ class BotAIChat {
                 loadingMessage.querySelector('.message-content').textContent = response.bot_response;
                 loadingMessage.querySelector('.message-time').textContent = response.timestamp;
                 loadingMessage.classList.remove('loading');
+                // Добавляем ссылки, если они есть
+                if (response.annotations && response.annotations.length > 0) {
+                    this.addAnnotationsToMessage(loadingMessage, response.annotations);
+                }
             } else {
                 throw new Error(response.error || 'Ошибка отправки сообщения');
             }
@@ -104,6 +108,48 @@ class BotAIChat {
         }
 
         this.scrollToBottom();
+    }
+
+    addAnnotationsToMessage(messageElement, annotations) {
+        const annotationsContainer = document.createElement('div');
+        annotationsContainer.className = 'annotations-container';
+        
+        const annotationsTitle = document.createElement('div');
+        annotationsTitle.className = 'annotations-title';
+        annotationsTitle.textContent = 'Источники информации:';
+        annotationsContainer.appendChild(annotationsTitle);
+        
+        const annotationsList = document.createElement('ul');
+        annotationsList.className = 'annotations-list';
+        
+        annotations.forEach(annotation => {
+            const listItem = document.createElement('li');
+            listItem.className = 'annotation-item';
+            
+            const link = document.createElement('a');
+            link.href = annotation.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'annotation-link';
+            if (annotation.title && annotation.title.trim() !== '') {
+                link.textContent = annotation.title;
+            } else if (annotation.domain) {
+                link.textContent = annotation.domain;
+            } else {
+                const url = new URL(annotation.url);
+                link.textContent = url.hostname;
+            }
+            const externalIcon = document.createElement('span');
+            externalIcon.className = 'external-icon';
+            externalIcon.innerHTML = ' ↗';
+            link.appendChild(externalIcon);
+            
+            listItem.appendChild(link);
+            annotationsList.appendChild(listItem);
+        });
+        
+        annotationsContainer.appendChild(annotationsList);
+        messageElement.appendChild(annotationsContainer);
     }
 
     async loadChatHistory() {

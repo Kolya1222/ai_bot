@@ -37,7 +37,6 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
             <nav class="col-md-3 col-lg-2 sidebar py-3">
                 <div class="position-sticky">
                     <h5 class="px-3 mb-3">AI Bot Manager</h5>
@@ -51,8 +50,6 @@
                     </div>
                 </div>
             </nav>
-
-            <!-- Main content -->
             <main class="col-md-9 col-lg-10 px-md-4 py-4">
                 @yield('content')
             </main>
@@ -61,25 +58,50 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Базовые функции для работы с API
         const apiManager = {
             async get(url) {
                 const response = await fetch(url);
                 return await response.json();
             },
             
+            async post(url, data) {
+                const formData = new FormData();
+                formData.append('_token', '{{ csrf_token() }}');
+
+                if (data) {
+                    if (data instanceof FormData) {
+                        data.append('_token', '{{ csrf_token() }}');
+                        return await this._fetchWithToken(url, 'POST', data);
+                    } else {
+                        formData.append('data', JSON.stringify(data));
+                    }
+                }
+                
+                return await this._fetchWithToken(url, 'POST', formData);
+            },
+            
             async delete(url) {
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
-                formData.append('_method', 'DELETE'); // Важно!
+                formData.append('_method', 'DELETE');
 
+                return await this._fetchWithToken(url, 'POST', formData);
+            },
+
+            async _fetchWithToken(url, method, body) {
                 const response = await fetch(url, {
-                    method: 'POST', // Используем POST метод
-                    body: formData,
+                    method: method,
+                    body: body,
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
                     }
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 return await response.json();
             }
         };
