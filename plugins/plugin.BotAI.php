@@ -54,6 +54,7 @@ Event::listen(['evolution.OnLoadWebDocument'], function () use ($modx) {
     }
     $modx->regClientCSS('<link rel="stylesheet" href="' . MODX_SITE_URL . 'assets/plugins/BotAI/BotAI.css">');
     $modx->regClientScript('<script src="' . MODX_SITE_URL . 'assets/plugins/BotAI/BotAI.js" defer></script>');
+    $modx->regClientScript('<script src="' . MODX_SITE_URL . 'assets/plugins/BotAI/marked.min.js" defer></script>');
     $modx->regClientHTMLBlock('<meta name="csrf-token" content="'.csrf_token().'">');
     $chatHTML = '    
 <div class="chat-container">
